@@ -1,0 +1,77 @@
+extends ../../../../app/views/layout-website-redesign
+
+block vars
+	- isWebsiteRedesign = true
+
+block content
+	main#main-content.content.content-alt
+		.container
+			.col-lg-8.col-xl-7.m-auto
+				h1.h3 Connecteur IA (MCP)
+				p
+					| Un lien de connecteur permet à une IA externe (Claude, ou tout client compatible MCP) de lister
+					| tes projets, de lire et modifier leurs fichiers et de les compiler, avec les mêmes droits que toi.
+					| Les modifications apparaissent en direct chez les personnes qui travaillent sur le projet et
+					| restent dans l'historique.
+				p.text-muted
+					| Le lien vaut mot de passe : ne le partage pas. Supprime-le ici dès que tu n'en as plus besoin.
+
+				if newLink
+					.notification.notification-type-success.mb-4(role='alert')
+						.notification-content-and-cta
+							.notification-content
+								p.mb-2
+									strong Nouveau lien créé.
+									|  Copie-le maintenant : il ne sera plus affiché.
+								input.form-control.font-monospace(
+									type='text'
+									readonly
+									value=newLink
+									aria-label='Lien du connecteur'
+								)
+
+				h2.h5.mt-4 Créer un lien
+				form.d-flex.gap-2.flex-wrap(method='POST' action='/user/mcp/tokens')
+					input(name='_csrf' type='hidden' value=csrfToken)
+					input.form-control.flex-fill(
+						name='name'
+						type='text'
+						maxlength='80'
+						placeholder='Nom, par exemple « Claude »'
+						aria-label='Nom du lien'
+					)
+					button.btn.btn-primary(type='submit') Créer un lien
+
+				h2.h5.mt-5 Liens actifs
+				if tokens.length
+					table.table.align-middle
+						thead
+							tr
+								th Nom
+								th Créé le
+								th Dernière utilisation
+								th
+						tbody
+							each token in tokens
+								tr
+									td= token.name
+									td= token.createdAt.toLocaleDateString('fr-FR')
+									td= token.lastUsedAt ? token.lastUsedAt.toLocaleString('fr-FR', { timeZone: 'Europe/Paris' }) : 'jamais'
+									td.text-end
+										form(method='POST' action='/user/mcp/tokens/' + token._id + '/delete')
+											input(name='_csrf' type='hidden' value=csrfToken)
+											button.btn.btn-sm.btn-danger-ghost(type='submit') Supprimer
+				else
+					p.text-muted Aucun lien pour l'instant.
+
+				h2.h5.mt-5 Brancher Claude
+				ol
+					li
+						| Sur claude.ai : Paramètres › Connecteurs › « Ajouter un connecteur personnalisé »,
+						| nom « Overleaf », URL : le lien ci-dessus. Aucun identifiant OAuth à remplir.
+					li
+						| Dans Claude Code :
+						code.ms-1 claude mcp add --transport http overleaf #{exampleUrl}
+					li
+						| Puis demande par exemple : « Relis l'introduction de mon projet Thèse et corrige les fautes,
+						| puis compile ».

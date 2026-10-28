@@ -20,6 +20,8 @@ services:
       OVERLEAF_SITE_LANGUAGE: fr
       # Shown in "Please contact … to create an account": accounts are created by the admin only
       OVERLEAF_ADMIN_EMAIL: Vincent Foriel
+      # Link to the page where users create their AI connector links (module services/web/modules/mcp)
+      OVERLEAF_HEADER_EXTRAS: '[{"text":"Connecteur IA","url":"/user/mcp"}]'
       OVERLEAF_MONGO_URL: mongodb://mongo/sharelatex
       OVERLEAF_REDIS_HOST: redis
       REDIS_HOST: redis

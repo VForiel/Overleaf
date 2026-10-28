@@ -38,6 +38,22 @@ OVERLEAF_INVITE_TOKEN_SECRET=...   # openssl rand -base64 32, à ne jamais chang
 OVERLEAF_SESSION_SECRET=...        # idem, sinon les sessions sautent à chaque recréation du conteneur
 ```
 
+## Connecteur IA (MCP)
+
+Module `services/web/modules/mcp` (propre au fork) : un serveur MCP intégré au service `web`, qui permet à une IA
+externe (Claude…) de lister les projets d'un compte, de lire, écrire, modifier, déplacer et supprimer leurs fichiers
+texte, de compiler et de créer un projet. Les modifications passent par l'éditeur : elles apparaissent en direct chez
+les collaborateurs et dans l'historique (source « mcp »), avec les droits du compte.
+
+- Chaque personne crée ses liens sur https://overleaf.foriel.pro/user/mcp (lien « Connecteur IA » dans la barre du
+  haut, `OVERLEAF_HEADER_EXTRAS`). Lien : `https://overleaf.foriel.pro/mcp/olmcp_…`, affiché une seule fois ; seule
+  son empreinte SHA-256 est gardée (collection MongoDB `mcpTokens`). Le jeton peut aussi passer en
+  `Authorization: Bearer` sur `/mcp`.
+- Transport « Streamable HTTP » sans état : un POST JSON-RPC, une réponse JSON ; GET répond 405. 600 requêtes par
+  minute et par lien.
+- Claude : Paramètres › Connecteurs › « Ajouter un connecteur personnalisé », URL = le lien. Claude Code :
+  `claude mcp add --transport http overleaf <lien>`.
+
 ## Comptes
 
 Pas d'inscription publique. Créer un compte (un lien pour choisir le mot de passe est affiché) :
