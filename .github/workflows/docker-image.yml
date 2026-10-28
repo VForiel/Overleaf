@@ -75,11 +75,19 @@ jobs:
       - name: Free builder space
         run: docker buildx prune --all --force && df -h /
 
+      # Packing the git dependency @replit/codemirror-indentation-markers (a Yarn 1 project) needs
+      # corepack to download Yarn 1. Upstream builds find it in their warm cache; here corepack keeps
+      # network access during the build and goes offline at the very end, as upstream intends.
+      - name: Let corepack download during the build
+        run: |
+          grep -v '^ENV COREPACK_ENABLE_NETWORK=0' server-ce/Dockerfile > server-ce/Dockerfile.fork
+          echo 'ENV COREPACK_ENABLE_NETWORK=0' >> server-ce/Dockerfile.fork
+
       - name: Community image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: server-ce/Dockerfile
+          file: server-ce/Dockerfile.fork
           push: true
           build-args: OVERLEAF_BASE_TAG=${{ env.BASE_IMAGE }}:texlive-full
           labels: com.overleaf.ce.revision=${{ github.sha }}
