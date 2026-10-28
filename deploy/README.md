@@ -7,7 +7,11 @@ https://overleaf.foriel.pro, Community Edition construite depuis ce fork.
   dans l'image de base (`deploy/Dockerfile-texlive`), qui ne se reconstruit que si son Dockerfile change.
 - **VPS1** : `~/Overleaf` contient `compose.yaml`, `mongodb-init-replica-set.js`, `.env` (secrets, hors git)
   et `data/` (projets, MongoDB, Redis). Le conteneur `overleaf` est relié au réseau `proxy` ;
-  `overleaf.caddy` est copié dans `~/reverse-proxy/sites/`.
+  `overleaf.caddy` est copié dans `~/reverse-proxy/sites/`. MongoDB est en 8.2 : la 8.0 refuse de démarrer
+  sur les noyaux Linux 6.19 et plus récents (SERVER-121912).
+- **Construction** : le workflow construit depuis une copie du Dockerfile sans le `tmpfs` sur `/tmp`
+  (monté `noexec` par BuildKit, ce qui empêche de construire la dépendance git `codemirror-indentation-markers`).
+- **Classes** : `aa.cls` (A&A) n'est pas dans TeX Live ; il faut l'ajouter au projet.
 
 ## Mise à jour
 
