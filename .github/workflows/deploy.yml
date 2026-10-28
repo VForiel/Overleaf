@@ -1,0 +1,36 @@
+# Déploie l'image sur VPS1 (https://overleaf.foriel.pro) dès que le workflow « Docker image » réussit sur main.
+# DEPLOY_SSH_KEY ne peut que lancer ~/deploy/gate.sh overleaf sur VPS1 (commande forcée dans authorized_keys), qui fait
+# docker compose pull overleaf && docker compose up -d dans ~/Overleaf ; VPS1_KNOWN_HOSTS épingle la clé d'hôte.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [Docker image]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://overleaf.foriel.pro
+    steps:
+      - name: Deploy on VPS1
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS1_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o BatchMode=yes ubuntu@152.228.240.129 prod

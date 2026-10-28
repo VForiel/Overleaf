@@ -11,9 +11,12 @@ https://overleaf.foriel.pro, Community Edition construite depuis ce fork.
 
 ## Mise à jour
 
+Automatique : quand « Docker image » réussit sur `main`, `.github/workflows/deploy.yml` se connecte à VPS1 avec une
+clé limitée à `~/deploy/gate.sh overleaf`, qui tire la nouvelle image et relance le conteneur (journal :
+`~/deploy/logs/overleaf-prod.log`). À la main :
+
 ```sh
-# après la fin du workflow GitHub Actions
-ssh VPS1 'cd ~/Overleaf && docker compose pull overleaf && docker compose up -d'
+ssh VPS1 '~/deploy/deploy.sh overleaf'
 ```
 
 ## Synchroniser le fork avec Overleaf
