@@ -75,13 +75,11 @@ jobs:
       - name: Free builder space
         run: docker buildx prune --all --force && df -h /
 
-      # Packing the git dependency @replit/codemirror-indentation-markers (a Yarn 1 project) needs
-      # corepack to download Yarn 1. Upstream builds find it in their warm cache; here corepack keeps
-      # network access during the build and goes offline at the very end, as upstream intends.
-      - name: Let corepack download during the build
-        run: |
-          grep -v '^ENV COREPACK_ENABLE_NETWORK=0' server-ce/Dockerfile > server-ce/Dockerfile.fork
-          echo 'ENV COREPACK_ENABLE_NETWORK=0' >> server-ce/Dockerfile.fork
+      # Packing the git dependency @replit/codemirror-indentation-markers builds it in /tmp, where its
+      # esbuild binary must run, but BuildKit tmpfs mounts are noexec. Upstream builds find the package
+      # in their warm yarn cache and never pack it; here /tmp stays a normal directory.
+      - name: Build without tmpfs on /tmp
+        run: sed 's|--mount=type=tmpfs,target=/tmp ||' server-ce/Dockerfile > server-ce/Dockerfile.fork
 
       - name: Community image
         uses: docker/build-push-action@v6
