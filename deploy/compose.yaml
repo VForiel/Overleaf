@@ -1,0 +1,63 @@
+# Overleaf (fork VForiel/Overleaf) on VPS1, at https://overleaf.foriel.pro.
+# Lives in ~/Overleaf on the VPS with a .env holding the secrets (see README.md).
+# The image is built by .github/workflows/docker-image.yml.
+services:
+  overleaf:
+    image: ghcr.io/vforiel/overleaf:latest
+    container_name: overleaf
+    restart: unless-stopped
+    stop_grace_period: 60s
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file: .env
+    environment:
+      OVERLEAF_APP_NAME: Overleaf
+      OVERLEAF_NAV_TITLE: Overleaf
+      OVERLEAF_SITE_URL: https://overleaf.foriel.pro
+      OVERLEAF_SITE_LANGUAGE: fr
+      OVERLEAF_MONGO_URL: mongodb://mongo/sharelatex
+      OVERLEAF_REDIS_HOST: redis
+      REDIS_HOST: redis
+      # TLS ends in the shared Caddy of ~/reverse-proxy (network "proxy")
+      OVERLEAF_SECURE_COOKIE: "true"
+      OVERLEAF_TRUSTED_PROXY_IPS: loopback,172.20.0.0/16
+      ENABLED_LINKED_FILE_TYPES: project_file,project_output_file
+      ENABLE_CONVERSIONS: "true"
+      EMAIL_CONFIRMATION_DISABLED: "true"
+      ENABLE_CRON_RESOURCE_DELETION: "true"
+    volumes:
+      - ./data/overleaf:/var/lib/overleaf
+    networks:
+      - default
+      - proxy
+
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    command: --replSet overleaf
+    environment:
+      MONGO_INITDB_DATABASE: sharelatex
+    extra_hosts:
+      # Lets the init script reach the replica set member by its service name
+      - mongo:127.0.0.1
+    volumes:
+      - ./data/mongo:/data/db
+      - ./mongodb-init-replica-set.js:/docker-entrypoint-initdb.d/mongodb-init-replica-set.js:ro
+    healthcheck:
+      test: echo 'db.stats().ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:7.4
+    restart: unless-stopped
+    volumes:
+      - ./data/redis:/data
+
+networks:
+  proxy:
+    external: true

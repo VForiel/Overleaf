@@ -1,0 +1,15 @@
+# ------------------------------------------------------------------
+# Base image with the full TeX Live scheme (fork deployment, VPS1)
+# ------------------------------------------------------------------
+# The upstream base image only ships scheme-basic, which misses most journal
+# classes and packages. Installing scheme-full here, below the Overleaf code,
+# means a code change only rebuilds and re-downloads the top layers.
+
+ARG OVERLEAF_BASE_TAG=sharelatex/sharelatex-base:latest
+FROM $OVERLEAF_BASE_TAG
+
+ARG TEXLIVE_MIRROR=https://mirror.ox.ac.uk/sites/ctan.org/systems/texlive/tlnet
+
+RUN tlmgr install --repository ${TEXLIVE_MIRROR} scheme-full \
+&&  tlmgr path add \
+&&  rm -rf /usr/local/texlive/*/tlpkg/backups /usr/local/texlive/*/texmf-var/web2c/*.log

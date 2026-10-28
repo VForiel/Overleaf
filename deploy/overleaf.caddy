@@ -1,0 +1,9 @@
+# Overleaf (~/Overleaf) : copié dans ~/reverse-proxy/sites/ sur VPS1. WebSockets relayés tels quels.
+overleaf.foriel.pro {
+	encode zstd gzip
+	import security_headers
+	request_body {
+		max_size 100MB
+	}
+	reverse_proxy overleaf:80
+}
