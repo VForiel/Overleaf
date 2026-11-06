@@ -1074,6 +1074,10 @@ module.exports = {
         __dirname,
         '../modules/git-bridge/frontend/js/components/git-integration-panel.tsx'
       ),
+      Path.resolve(
+        __dirname,
+        '../modules/git-bridge/frontend/js/components/git-sync-card.tsx'
+      ),
     ],
     referenceSearchSetting: [],
     settingsModalEditorTabSections: [],

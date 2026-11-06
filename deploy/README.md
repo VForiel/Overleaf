@@ -73,6 +73,25 @@ mot de passe = un jeton git. C'est l'équivalent de l'intégration git de Server
 - **Caddy** (`overleaf.caddy`) ne laisse passer que `/git/<id>…` vers git-bridge, et coupe `/api/v0/*` et
   `/oauth/token/info` depuis Internet : ces routes ne servent qu'entre les deux conteneurs.
 
+### Dépôt distant (Pull / Push depuis l'éditeur)
+
+Carte « Dépôt distant » de l'onglet « Intégrations » : relie un projet à une branche d'un dépôt GitHub, GitLab…
+(adresse https + jeton d'accès, par exemple un « fine-grained token » GitHub limité au dépôt, droit « Contents » en
+lecture et écriture), avec des boutons Pull et Push et le choix de la branche. Code : `GitSync.mjs` du même module.
+
+- Le propriétaire du projet relie, modifie ou délie le dépôt ; toute personne qui peut modifier le projet fait pull,
+  push et change de branche. Le jeton est chiffré dans MongoDB (collection `gitSyncLinks`) et n'est jamais renvoyé.
+- Chaque projet relié a un dépôt nu dans `/var/lib/overleaf/data/git-sync/<id>.git` (volume `data/overleaf`), dont la
+  référence `sync` est le dernier état commun au projet et à la branche. Pull et push enregistrent d'abord le projet
+  comme un commit au-dessus de `sync`. **Pull** « Fusionner » : `git merge-tree`, refusé en cas de conflit (liste des
+  fichiers, rien n'est modifié) ; « Remplacer » : le projet devient la branche. **Push** : refusé si la branche a des
+  commits que le projet n'a pas (faire un pull) ; jamais forcé. Le premier push vers une branche qui existe déjà demande
+  un pull d'abord ; vers une branche vide ou nouvelle, il la crée.
+- Pas de copie de travail sur le serveur (seulement des objets git) : liens symboliques et sous-modules du dépôt sont
+  ignorés, comme les fichiers de plus de 50 Mo. git tourne sans configuration système, en https seulement, sans
+  invite ; le jeton passe dans un en-tête HTTP par l'environnement, jamais dans une adresse ni un fichier.
+- Les modifications apparaissent en direct dans l'éditeur, source « git-sync » dans l'historique.
+
 Mise en place sur VPS1 (une fois) : copier `compose.yaml`, `git-bridge.json` et `overleaf.caddy`, puis
 
 ```sh

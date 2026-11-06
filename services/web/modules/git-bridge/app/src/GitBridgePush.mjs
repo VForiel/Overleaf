@@ -5,12 +5,9 @@ import { pipeline } from 'node:stream/promises'
 import Settings from '@overleaf/settings'
 import logger from '@overleaf/logger'
 import { fetchNothing, fetchStream } from '@overleaf/fetch-utils'
-import ProjectGetter from '../../../../app/src/Features/Project/ProjectGetter.mjs'
-import ProjectEntityHandler from '../../../../app/src/Features/Project/ProjectEntityHandler.mjs'
 import SafePath from '../../../../app/src/Features/Project/SafePath.mjs'
-import EditorController from '../../../../app/src/Features/Editor/EditorController.mjs'
-import FileTypeManager from '../../../../app/src/Features/Uploads/FileTypeManager.mjs'
 import { flush, latestVersion } from './GitBridgeSnapshots.mjs'
+import { currentFiles, deleteFiles, writeFile } from './ProjectFiles.mjs'
 
 // Write side of the snapshot API: applies a "git push" to the project.
 //
@@ -69,22 +66,6 @@ export function invalidFiles(files) {
   return errors
 }
 
-/** Folders left empty by the deletions, deepest first. */
-export function foldersToRemove(deletedPaths, remainingPaths) {
-  const candidates = new Set()
-  for (const path of deletedPaths) {
-    const parts = path.split('/')
-    for (let i = parts.length - 1; i > 0; i--) {
-      candidates.add(parts.slice(0, i).join('/'))
-    }
-  }
-  return [...candidates]
-    .filter(
-      folder => !remainingPaths.some(path => path.startsWith(`${folder}/`))
-    )
-    .sort((a, b) => b.split('/').length - a.split('/').length)
-}
-
 async function download(url, name) {
   const dir = Settings.path.dumpFolder
   await fs.promises.mkdir(dir, { recursive: true })
@@ -109,47 +90,10 @@ async function download(url, name) {
 async function applyFile(projectId, userId, name, url, existingType) {
   const fsPath = await download(url, name)
   try {
-    const { binary, encoding } = await FileTypeManager.promises.getType(
-      Path.basename(name),
-      fsPath,
-      existingType
-    )
-    if (binary) {
-      await EditorController.promises.upsertFileWithPath(
-        projectId,
-        `/${name}`,
-        fsPath,
-        null,
-        SOURCE,
-        userId
-      )
-    } else {
-      const content = await fs.promises.readFile(fsPath, encoding)
-      // Unix, DOS and classic Mac newlines, as for uploads
-      await EditorController.promises.upsertDocWithPath(
-        projectId,
-        `/${name}`,
-        content.split(/\r\n|\n|\r/),
-        SOURCE,
-        userId
-      )
-    }
+    await writeFile(projectId, userId, name, fsPath, existingType, SOURCE)
   } finally {
     await fs.promises.rm(fsPath, { force: true })
   }
-}
-
-/** Type of every file of the project, by path without leading slash. */
-async function currentFiles(projectId) {
-  const project = await ProjectGetter.promises.getProject(projectId, {
-    rootFolder: 1,
-  })
-  const { docs, files } =
-    ProjectEntityHandler.getAllEntitiesFromProject(project)
-  const types = new Map()
-  for (const { path } of docs) types.set(path.slice(1), 'doc')
-  for (const { path } of files) types.set(path.slice(1), 'file')
-  return types
 }
 
 async function applyPush(projectId, userId, files) {
@@ -163,28 +107,7 @@ async function applyPush(projectId, userId, files) {
   }
 
   const deleted = [...existing.keys()].filter(path => !pushed.has(path))
-  for (const path of deleted) {
-    await EditorController.promises.deleteEntityWithPath(
-      projectId,
-      `/${path}`,
-      SOURCE,
-      userId
-    )
-  }
-
-  // git has no empty folders: a folder whose files were all deleted goes too
-  for (const folder of foldersToRemove(deleted, [...pushed])) {
-    try {
-      await EditorController.promises.deleteEntityWithPath(
-        projectId,
-        `/${folder}`,
-        SOURCE,
-        userId
-      )
-    } catch (err) {
-      logger.debug({ err, projectId, folder }, 'git-bridge: folder kept')
-    }
-  }
+  await deleteFiles(projectId, userId, deleted, [...pushed], SOURCE)
 }
 
 async function postback(url, body) {

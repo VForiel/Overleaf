@@ -510,6 +510,8 @@ if (process.env.GIT_BRIDGE_ENABLED === 'true') {
   // web as reached from git-bridge (binary files of snapshots)
   settings.gitBridgeWebInternalUrl =
     process.env.GIT_BRIDGE_WEB_INTERNAL_URL || 'http://overleaf'
+  // Bare repositories of the projects linked to a remote repository (Pull / Push buttons)
+  settings.gitSyncDir = Path.join(DATA_DIR, 'git-sync')
 }
 
 // With lots of incoming and outgoing HTTP connections to different services,
