@@ -1,0 +1,99 @@
+extends ../../../../app/views/layout-website-redesign
+
+block vars
+	- isWebsiteRedesign = true
+
+block content
+	main#main-content.content.content-alt
+		.container
+			.col-lg-8.col-xl-7.m-auto
+				h1.h3 Git
+				p
+					| Chaque projet est aussi un dépôt git : tu peux le cloner, travailler en local, puis faire
+					| pull et push. Un push apparaît en direct chez les personnes qui travaillent sur le projet
+					| et reste dans l'historique.
+				p.text-muted
+					| Git demande un nom d'utilisateur et un mot de passe : le nom est toujours
+					code.mx-1 git
+					| et le mot de passe est un jeton créé ici. Le jeton vaut mot de passe pour tous tes
+					| projets : ne le partage pas, et supprime-le dès que tu n'en as plus besoin.
+
+				if error
+					.notification.notification-type-error.mb-4(role='alert')
+						.notification-content-and-cta
+							.notification-content
+								p.mb-0= error
+
+				if newToken
+					.notification.notification-type-success.mb-4(role='alert')
+						.notification-content-and-cta
+							.notification-content
+								p.mb-2
+									strong Nouveau jeton créé.
+									|  Copie-le maintenant : il ne sera plus affiché.
+								input.form-control.font-monospace(
+									type='text'
+									readonly
+									value=newToken
+									aria-label='Jeton git'
+								)
+
+				h2.h5.mt-4 Créer un jeton
+				form.d-flex.gap-2.flex-wrap(method='POST' action='/user/git/tokens')
+					input(name='_csrf' type='hidden' value=csrfToken)
+					input.form-control.flex-fill(
+						name='name'
+						type='text'
+						maxlength='80'
+						placeholder='Nom, par exemple « PC du labo »'
+						aria-label='Nom du jeton'
+					)
+					button.btn.btn-primary(type='submit') Créer un jeton
+
+				h2.h5.mt-5 Jetons actifs
+				if tokens.length
+					table.table.align-middle
+						thead
+							tr
+								th Nom
+								th Créé le
+								th Dernière utilisation
+								th
+						tbody
+							each token in tokens
+								tr
+									td= token.name
+									td= token.createdAt.toLocaleDateString('fr-FR')
+									td= token.lastUsedAt ? token.lastUsedAt.toLocaleString('fr-FR', { timeZone: 'Europe/Paris' }) : 'jamais'
+									td.text-end
+										form(method='POST' action='/user/git/tokens/' + token._id + '/delete')
+											input(name='_csrf' type='hidden' value=csrfToken)
+											button.btn.btn-sm.btn-danger-ghost(type='submit') Supprimer
+				else
+					p.text-muted Aucun jeton pour l'instant.
+
+				h2.h5.mt-5 Utilisation
+				p
+					| L'adresse d'un projet est donnée par l'onglet « Intégrations » de l'éditeur (barre de gauche).
+					| Elle a la forme
+					code.ms-1 #{exampleUrl}
+					| .
+				pre.bg-light.p-3.rounded
+					code.
+						git clone #{exampleUrl}
+						# nom d'utilisateur : git, mot de passe : le jeton
+						git pull
+						git push
+				p.text-muted
+					| Pour ne pas retaper le jeton :
+					code.mx-1 git config --global credential.helper store
+					| (ou le gestionnaire de mots de passe de ton système). Pour relier le projet à GitHub, ajoute
+					| un deuxième remote :
+					code.ms-1 git remote add github git@github.com:compte/depot.git
+					| .
+				p.text-muted
+					| Limites : pas de push forcé (faire un pull avant), 2 000 fichiers et 50 Mo par fichier au
+					| plus, et un projet qui contient un dossier
+					code.mx-1 .git
+					| ne peut pas être cloné. Un fichier lié (importé d'une URL ou d'un autre projet) modifié
+					| par un push devient un fichier ordinaire.

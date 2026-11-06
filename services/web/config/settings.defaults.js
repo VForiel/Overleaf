@@ -1069,7 +1069,12 @@ module.exports = {
         '../modules/full-project-search/frontend/js/components/full-project-search.tsx'
       ),
     ],
-    integrationPanelComponents: [],
+    integrationPanelComponents: [
+      Path.resolve(
+        __dirname,
+        '../modules/git-bridge/frontend/js/components/git-integration-panel.tsx'
+      ),
+    ],
     referenceSearchSetting: [],
     settingsModalEditorTabSections: [],
     settingsModalSpellcheckSections: [],
@@ -1087,6 +1092,7 @@ module.exports = {
     'server-ce-scripts',
     'user-activate',
     'mcp',
+    'git-bridge',
   ],
   viewIncludes: {},
 

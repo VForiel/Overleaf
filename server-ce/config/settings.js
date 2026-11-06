@@ -498,6 +498,20 @@ if (
   )
 }
 
+// Git access to projects (fork only: module services/web/modules/git-bridge and
+// a services/git-bridge container next to this one, see deploy/README.md)
+if (process.env.GIT_BRIDGE_ENABLED === 'true') {
+  settings.enableGitBridge = true
+  // Shown to users: git clone <public base>/<project id>
+  settings.gitBridgePublicBaseUrl = process.env.GIT_BRIDGE_PUBLIC_BASE_URL
+  // git-bridge as reached from web (postbacks and pushed files)
+  settings.gitBridgeInternalUrl =
+    process.env.GIT_BRIDGE_INTERNAL_URL || 'http://git-bridge:8000'
+  // web as reached from git-bridge (binary files of snapshots)
+  settings.gitBridgeWebInternalUrl =
+    process.env.GIT_BRIDGE_WEB_INTERNAL_URL || 'http://overleaf'
+}
+
 // With lots of incoming and outgoing HTTP connections to different services,
 // sometimes long running, it is a good idea to increase the default number
 // of sockets that Node will hold open.

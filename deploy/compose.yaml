@@ -20,8 +20,8 @@ services:
       OVERLEAF_SITE_LANGUAGE: fr
       # Shown in "Please contact … to create an account": accounts are created by the admin only
       OVERLEAF_ADMIN_EMAIL: Vincent Foriel
-      # Link to the page where users create their AI connector links (module services/web/modules/mcp)
-      OVERLEAF_HEADER_EXTRAS: '[{"text":"Connecteur IA","url":"/user/mcp"}]'
+      # Pages where users create their AI connector links (module mcp) and git tokens (module git-bridge)
+      OVERLEAF_HEADER_EXTRAS: '[{"text":"Connecteur IA","url":"/user/mcp"},{"text":"Git","url":"/user/git"}]'
       OVERLEAF_MONGO_URL: mongodb://mongo/sharelatex
       OVERLEAF_REDIS_HOST: redis
       REDIS_HOST: redis
@@ -32,8 +32,28 @@ services:
       ENABLE_CONVERSIONS: "true"
       EMAIL_CONFIRMATION_DISABLED: "true"
       ENABLE_CRON_RESOURCE_DELETION: "true"
+      # Git access (module services/web/modules/git-bridge + the git-bridge service below)
+      GIT_BRIDGE_ENABLED: "true"
+      GIT_BRIDGE_PUBLIC_BASE_URL: https://overleaf.foriel.pro/git
     volumes:
       - ./data/overleaf:/var/lib/overleaf
+    networks:
+      - default
+      - proxy
+
+  # git clone / pull / push of projects (services/git-bridge, deploy/Dockerfile-git-bridge).
+  # Talks to the overleaf service over the default network; Caddy forwards /git/<id> to it.
+  git-bridge:
+    image: ghcr.io/vforiel/overleaf-git-bridge:latest
+    container_name: git-bridge
+    restart: unless-stopped
+    depends_on:
+      - overleaf
+    mem_limit: 384m
+    volumes:
+      # Owned by uid 1000 (user of the image)
+      - ./data/git-bridge:/data
+      - ./git-bridge.json:/conf/runtime.json:ro
     networks:
       - default
       - proxy

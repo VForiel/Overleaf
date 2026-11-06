@@ -1,0 +1,20 @@
+# services/git-bridge (git clone / pull / push of projects), built by
+# .github/workflows/git-bridge-image.yml with services/git-bridge as context.
+# Runs next to the overleaf container; configuration: deploy/git-bridge.json.
+
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /src
+COPY pom.xml .
+RUN mvn -q -B dependency:go-offline
+COPY src/main src/main
+RUN mvn -q -B -DskipTests package
+
+FROM eclipse-temurin:21-jre
+# uid 1000 is the "ubuntu" user of the base image; ./data/git-bridge on the host belongs to it
+RUN mkdir -p /data /conf && chown 1000:1000 /data
+COPY --from=build /src/target/writelatex-git-bridge-1.0-SNAPSHOT-jar-with-dependencies.jar /git-bridge.jar
+USER 1000:1000
+EXPOSE 8000
+# Small heap: one person's projects, on a VPS shared with other sites
+ENV JAVA_OPTS="-Xmx192m -Xss512k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+CMD ["sh", "-c", "exec java $JAVA_OPTS -jar /git-bridge.jar /conf/runtime.json"]

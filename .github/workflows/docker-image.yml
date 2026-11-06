@@ -3,6 +3,7 @@
 #   overleaf-base:basic        server-ce/Dockerfile-base (upstream, scheme-basic)
 #   overleaf-base:texlive-full deploy/Dockerfile-texlive (scheme-full on top)
 #   overleaf:latest            server-ce/Dockerfile (Overleaf code)
+# and, in a second job, overleaf-git-bridge:latest (deploy/Dockerfile-git-bridge, git access to projects).
 # The base stages come from the registry cache unless their Dockerfile changes.
 name: Docker image
 
@@ -27,8 +28,36 @@ permissions:
 env:
   BASE_IMAGE: ghcr.io/vforiel/overleaf-base
   IMAGE: ghcr.io/vforiel/overleaf
+  GIT_BRIDGE_IMAGE: ghcr.io/vforiel/overleaf-git-bridge
 
 jobs:
+  git-bridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: git-bridge image
+        uses: docker/build-push-action@v6
+        with:
+          context: services/git-bridge
+          file: deploy/Dockerfile-git-bridge
+          push: true
+          labels: com.overleaf.ce.revision=${{ github.sha }}
+          tags: |
+            ${{ env.GIT_BRIDGE_IMAGE }}:latest
+            ${{ env.GIT_BRIDGE_IMAGE }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.GIT_BRIDGE_IMAGE }}:cache
+          cache-to: type=registry,ref=${{ env.GIT_BRIDGE_IMAGE }}:cache,mode=max
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 150

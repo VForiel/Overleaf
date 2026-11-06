@@ -5,5 +5,25 @@ overleaf.foriel.pro {
 	request_body {
 		max_size 100MB
 	}
-	reverse_proxy overleaf:80
+
+	# API between git-bridge and web: reachable from inside Docker only
+	@gitBridgeApi path /api/v0/* /oauth/token/info
+	handle @gitBridgeApi {
+		respond 404
+	}
+
+	# git clone https://overleaf.foriel.pro/git/<project id>: only the git routes
+	# of git-bridge, not its own API (postbacks, deletions, metrics)
+	@gitRepo path_regexp ^/git/[0-9a-f]{24}(\.git)?(/.*)?$
+	handle @gitRepo {
+		uri strip_prefix /git
+		reverse_proxy git-bridge:8000
+	}
+	handle /git/* {
+		respond 404
+	}
+
+	handle {
+		reverse_proxy overleaf:80
+	}
 }

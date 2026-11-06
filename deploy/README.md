@@ -54,6 +54,35 @@ les collaborateurs et dans l'historique (source « mcp »), avec les droits du c
 - Claude : Paramètres › Connecteurs › « Ajouter un connecteur personnalisé », URL = le lien. Claude Code :
   `claude mcp add --transport http overleaf <lien>`.
 
+## Git (clone, pull, push)
+
+Chaque projet est un dépôt git : `git clone https://overleaf.foriel.pro/git/<id du projet>`, nom d'utilisateur `git`,
+mot de passe = un jeton git. C'est l'équivalent de l'intégration git de Server Pro, refaite pour le fork :
+
+- **git-bridge** (`services/git-bridge`, code amont en Java) tourne dans son propre conteneur, image
+  `ghcr.io/vforiel/overleaf-git-bridge` (`deploy/Dockerfile-git-bridge`, second job de « Docker image »), configuration
+  `deploy/git-bridge.json` (copiée à côté de `compose.yaml`), dépôts dans `data/git-bridge` (appartient à l'uid 1000).
+  Tas Java limité à 192 Mo, conteneur à 384 Mo.
+- **Module `services/web/modules/git-bridge`** (propre au fork) : l'API que git-bridge appelle (`/api/v0/docs/…`,
+  `/oauth/token/info`), les jetons (page https://overleaf.foriel.pro/user/git, collection MongoDB `gitTokens`, seule
+  l'empreinte SHA-256 est gardée) et la carte « Git » de l'onglet « Intégrations » de l'éditeur. Activé par
+  `GIT_BRIDGE_ENABLED=true` et `GIT_BRIDGE_PUBLIC_BASE_URL` (voir `server-ce/config/settings.js`).
+- Une version git = une version de l'historique (history-v1). Les versions nommées de l'historique deviennent des
+  commits à part, avec leur nom comme message. Un push passe par l'éditeur (source « git-bridge » dans l'historique) :
+  fichiers modifiés remplacés, fichiers absents supprimés, dossiers vidés supprimés.
+- **Caddy** (`overleaf.caddy`) ne laisse passer que `/git/<id>…` vers git-bridge, et coupe `/api/v0/*` et
+  `/oauth/token/info` depuis Internet : ces routes ne servent qu'entre les deux conteneurs.
+
+Mise en place sur VPS1 (une fois) : copier `compose.yaml`, `git-bridge.json` et `overleaf.caddy`, puis
+
+```sh
+mkdir -p ~/Overleaf/data/git-bridge && sudo chown 1000:1000 ~/Overleaf/data/git-bridge
+cd ~/Overleaf && docker compose pull && docker compose up -d
+docker exec reverse-proxy caddy reload --config /etc/caddy/Caddyfile
+```
+
+`~/deploy/deploy.sh overleaf` tire les deux images (`docker compose pull overleaf git-bridge`).
+
 ## Comptes
 
 Pas d'inscription publique. Créer un compte (un lien pour choisir le mot de passe est affiché) :

@@ -1,0 +1,17 @@
+{
+  "port": 8000,
+  "bindIp": "0.0.0.0",
+  "idleTimeout": 30000,
+  "rootGitDirectory": "/data",
+  "allowedCorsOrigins": "https://overleaf.foriel.pro",
+  "apiBaseUrl": "http://overleaf/api/v0",
+  "postbackBaseUrl": "http://git-bridge:8000",
+  "serviceName": "Overleaf",
+  "oauth2Server": "http://overleaf",
+  "userPasswordEnabled": false,
+  "repoStore": {
+    "maxFileNum": 2000,
+    "maxFileSize": 52428800
+  },
+  "sqliteHeapLimitBytes": 0
+}
