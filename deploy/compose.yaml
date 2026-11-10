@@ -22,6 +22,9 @@ services:
       OVERLEAF_ADMIN_EMAIL: Vincent Foriel
       # Edit links work without an account (changes then show as "Anonymous" in the history)
       OVERLEAF_ALLOW_ANONYMOUS_READ_AND_WRITE_SHARING: "true"
+      # Needed for the line above: otherwise a global middleware sends every visitor
+      # without a session to /login before the link is read. Other pages keep requireLogin.
+      OVERLEAF_ALLOW_PUBLIC_ACCESS: "true"
       # Pages where users create their AI connector links (module mcp) and git tokens (module git-bridge)
       OVERLEAF_HEADER_EXTRAS: '[{"text":"Connecteur IA","url":"/user/mcp"},{"text":"Git","url":"/user/git"}]'
       OVERLEAF_MONGO_URL: mongodb://mongo/sharelatex
