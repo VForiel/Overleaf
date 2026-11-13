@@ -237,6 +237,41 @@ describe('DocumentController', function () {
       })
     })
 
+    describe('when the last edit was made by an anonymous visitor', function () {
+      beforeEach(async function (ctx) {
+        await new Promise(resolve => {
+          ctx.req.body = {
+            lines: ctx.doc_lines,
+            version: ctx.version,
+            ranges: ctx.ranges,
+            lastUpdatedAt: ctx.lastUpdatedAt,
+            lastUpdatedBy: 'anonymous-user',
+          }
+          ctx.res.callback = err => {
+            resolve(err)
+          }
+          ctx.DocumentController.setDocument(ctx.req, ctx.res, ctx.next)
+        })
+      })
+
+      it('should update the document without a user', function (ctx) {
+        sinon.assert.calledWith(
+          ctx.ProjectEntityUpdateHandler.promises.updateDocLines,
+          ctx.project._id,
+          ctx.doc._id,
+          ctx.doc_lines,
+          ctx.version,
+          ctx.ranges,
+          Number(ctx.lastUpdatedAt),
+          null
+        )
+      })
+
+      it('should return a successful response', function (ctx) {
+        ctx.res.success.should.equal(true)
+      })
+    })
+
     describe("when the document doesn't exist", function () {
       beforeEach(async function (ctx) {
         await new Promise(resolve => {

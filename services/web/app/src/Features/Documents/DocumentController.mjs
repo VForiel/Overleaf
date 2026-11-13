@@ -123,7 +123,14 @@ const setDocumentSchema = z.object({
     version: z.number().int(),
     ranges: rangesSchemas.ranges,
     lastUpdatedAt: z.coerce.number().int().positive().nullish(),
-    lastUpdatedBy: zz.objectId().nullish(),
+    // document-updater forwards the user id of the last edit, which is the
+    // sentinel 'anonymous-user' for link-sharing visitors with no account
+    // (see EditorHttpController's joinProjectSchema); stored as no user
+    lastUpdatedBy: zz
+      .objectId()
+      .or(z.literal('anonymous-user'))
+      .nullish()
+      .transform(userId => (userId === 'anonymous-user' ? null : userId)),
   }),
 })
 
